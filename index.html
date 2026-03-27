@@ -424,27 +424,30 @@ $('pdfBtn').onclick=async()=>{
     }
     pdfSubLabel.textContent='変換完了！'; await new Promise(r=>setTimeout(r,80));
 
-    // base64取得してダウンロードリンクを表示
-    const pdfBase64 = pdf.output('datauristring');
     const now=new Date();
     const fn=`scan_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.pdf`;
 
+    // Blob URL方式（公開環境で最も確実）
+    const pdfBlob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
     pdfProgressBar.style.width='100%';
-    // オーバーレイをダウンロード案内に切り替え
     $('pdfOverlay').innerHTML=`
       <div style="text-align:center;padding:24px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;max-width:300px;width:90%">
         <div style="font-size:2.5rem;margin-bottom:12px">✅</div>
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;margin-bottom:6px">PDF変換完了</div>
         <div style="color:var(--muted);font-size:.82rem;margin-bottom:20px">${fn}</div>
-        <a href="${pdfBase64}" download="${fn}"
+        <a id="dlLink" href="${blobUrl}" download="${fn}"
           style="display:block;background:var(--accent);color:#0a0a0f;font-family:'Syne',sans-serif;font-weight:700;padding:14px;border-radius:12px;text-decoration:none;font-size:.95rem;margin-bottom:10px">
           ⬇️ ダウンロード
         </a>
-        <button onclick="$('pdfOverlay').classList.remove('show')"
+        <button onclick="document.getElementById('pdfOverlay').classList.remove('show');URL.revokeObjectURL('${blobUrl}')"
           style="display:block;width:100%;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-family:'Syne',sans-serif;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;font-size:.9rem">
           閉じる
         </button>
       </div>`;
+    // 自動クリック（ページ直読み環境では即ダウンロード）
+    setTimeout(()=>{ const l=document.getElementById('dlLink'); if(l) l.click(); }, 300);
   }catch(e){$('pdfOverlay').classList.remove('show');alert('エラー: '+e.message);console.error(e);}
 };
 
